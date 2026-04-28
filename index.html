@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>拼布对决</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="topbar">
+        <div>
+          <h1>拼布对决</h1>
+          <p id="statusText">蓝方先手，选择一块布料开始。</p>
+        </div>
+        <div class="score-strip" aria-label="比分">
+          <div class="score-pill blue">
+            <span>蓝方</span>
+            <strong id="blueScore">5</strong>
+          </div>
+          <div class="score-pill red">
+            <span>红方</span>
+            <strong id="redScore">5</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="arena">
+        <aside class="player-panel active" id="bluePanel">
+          <div class="player-head">
+            <h2>蓝方</h2>
+            <span id="blueTurn">回合中</span>
+          </div>
+          <div class="stats">
+            <span>纽扣 <strong id="blueButtons">5</strong></span>
+            <span>时间 <strong id="blueTime">0</strong>/34</span>
+            <span>收入 <strong id="blueIncome">1</strong></span>
+          </div>
+          <div class="board" id="blueBoard" aria-label="蓝方拼布板"></div>
+        </aside>
+
+        <section class="center-panel">
+          <div class="track-wrap">
+            <div class="track-title">
+              <h2>时间轴</h2>
+              <button id="newGameBtn" type="button">新局</button>
+            </div>
+            <div class="track" id="timeTrack"></div>
+          </div>
+
+          <div class="draft-wrap">
+            <div class="draft-title">
+              <h2>布料市场</h2>
+              <div class="tool-row">
+                <button id="rotateBtn" type="button" title="旋转">↻</button>
+                <button id="flipBtn" type="button" title="翻转">⇄</button>
+              </div>
+            </div>
+            <div class="patch-list" id="patchList"></div>
+          </div>
+
+          <div class="selected-card" id="selectedCard">
+            <h2>当前布料</h2>
+            <div class="selected-preview" id="selectedPreview"></div>
+            <p id="selectedMeta">请选择一块布料。</p>
+          </div>
+        </section>
+
+        <aside class="player-panel" id="redPanel">
+          <div class="player-head">
+            <h2>红方</h2>
+            <span id="redTurn">等待</span>
+          </div>
+          <div class="stats">
+            <span>纽扣 <strong id="redButtons">5</strong></span>
+            <span>时间 <strong id="redTime">0</strong>/34</span>
+            <span>收入 <strong id="redIncome">1</strong></span>
+          </div>
+          <div class="board" id="redBoard" aria-label="红方拼布板"></div>
+        </aside>
+      </section>
+
+      <section class="log-panel">
+        <h2>战况</h2>
+        <ol id="logList"></ol>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
