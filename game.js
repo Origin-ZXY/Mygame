@@ -27,6 +27,7 @@ let selectedIndex = null;
 let orientedShape = [];
 let remainingPatches = [];
 let gameOver = false;
+let logMessages = [];
 
 const nodes = {
   blueBoard: document.querySelector("#blueBoard"),
@@ -40,6 +41,24 @@ const nodes = {
   rotateBtn: document.querySelector("#rotateBtn"),
   flipBtn: document.querySelector("#flipBtn"),
   newGameBtn: document.querySelector("#newGameBtn"),
+  onlineStatus: document.querySelector("#onlineStatus"),
+  createRoomBtn: document.querySelector("#createRoomBtn"),
+  joinRoomBtn: document.querySelector("#joinRoomBtn"),
+  copyInviteBtn: document.querySelector("#copyInviteBtn"),
+  roomCodeInput: document.querySelector("#roomCodeInput"),
+  inviteLink: document.querySelector("#inviteLink"),
+};
+
+const online = {
+  client: null,
+  channel: null,
+  clientId: makeClientId(),
+  roomCode: "",
+  role: "local",
+  connected: false,
+  configured: false,
+  applyingRemote: false,
+  version: 0,
 };
 
 function makePlayer(label) {
@@ -52,7 +71,8 @@ function makePlayer(label) {
   };
 }
 
-function startGame() {
+function startGame(options = {}) {
+  const shouldPublish = options.publish ?? isOnlineGame();
   players.blue = makePlayer("蓝方");
   players.red = makePlayer("红方");
   current = "blue";
@@ -61,10 +81,11 @@ function startGame() {
   remainingPatches = shuffle(PATCHES).slice(0, 10);
   gameOver = false;
   document.body.classList.remove("game-over");
-  nodes.logList.innerHTML = "";
+  logMessages = [];
   buildBoards();
   renderAll();
   log("新局开始，蓝方先手。");
+  if (shouldPublish) publishState("new-game");
 }
 
 function buildBoards() {
@@ -93,6 +114,8 @@ function renderAll() {
   renderTrack();
   renderSelected();
   renderStats();
+  renderLog();
+  renderOnlineStatus();
 }
 
 function renderBoards() {
@@ -115,7 +138,7 @@ function renderPatches() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = `patch-card${index === selectedIndex ? " selected" : ""}`;
-    card.disabled = gameOver || players[current].buttons < patch.cost;
+    card.disabled = gameOver || !canTakeTurn() || players[current].buttons < patch.cost;
     card.append(makeMiniGrid(patch.shape, patch.color));
     card.insertAdjacentHTML(
       "beforeend",
@@ -129,7 +152,7 @@ function renderPatches() {
 function renderSelected() {
   nodes.selectedPreview.innerHTML = "";
   if (selectedIndex === null) {
-    nodes.selectedMeta.textContent = "请选择一块布料。";
+    nodes.selectedMeta.textContent = canTakeTurn() ? "请选择一块布料。" : "等待对方操作。";
     return;
   }
   const patch = remainingPatches[selectedIndex];
@@ -165,8 +188,42 @@ function renderStats() {
   }
 }
 
+function renderLog() {
+  nodes.logList.innerHTML = "";
+  for (const message of logMessages.slice(0, 24)) {
+    const item = document.createElement("li");
+    item.textContent = message;
+    nodes.logList.append(item);
+  }
+}
+
+function renderOnlineStatus() {
+  if (!online.configured) {
+    nodes.onlineStatus.textContent = "本地同屏模式，配置 Supabase 后可联机。";
+    nodes.createRoomBtn.disabled = true;
+    nodes.joinRoomBtn.disabled = true;
+    nodes.copyInviteBtn.disabled = true;
+    nodes.inviteLink.textContent = "需要在 config.js 填入 supabaseUrl 和 supabaseKey。";
+    return;
+  }
+
+  nodes.createRoomBtn.disabled = false;
+  nodes.joinRoomBtn.disabled = false;
+  nodes.copyInviteBtn.disabled = !online.roomCode;
+  if (!isOnlineGame()) {
+    nodes.onlineStatus.textContent = "本地同屏模式，可创建或加入联机房间。";
+    nodes.inviteLink.textContent = "";
+    return;
+  }
+
+  const roleText = online.role === "blue" ? "蓝方" : online.role === "red" ? "红方" : "观战";
+  const connectionText = online.connected ? "已连接" : "连接中";
+  nodes.onlineStatus.textContent = `房间 ${online.roomCode} · ${roleText} · ${connectionText}`;
+  nodes.inviteLink.textContent = online.role === "blue" ? makeInviteLink() : "";
+}
+
 function selectPatch(index) {
-  if (gameOver) return;
+  if (gameOver || !canTakeTurn()) return;
   const patch = remainingPatches[index];
   if (players[current].buttons < patch.cost) {
     log(`${players[current].label} 纽扣不足，不能选择 ${patch.name}。`);
@@ -179,7 +236,7 @@ function selectPatch(index) {
 }
 
 function placePatch(boardId, x, y) {
-  if (gameOver || boardId !== current || selectedIndex === null) return;
+  if (gameOver || boardId !== current || selectedIndex === null || !canTakeTurn()) return;
   const player = players[current];
   const patch = remainingPatches[selectedIndex];
   if (!canPlace(player, orientedShape, x, y)) {
@@ -200,12 +257,12 @@ function placePatch(boardId, x, y) {
 
   if (isGameDone()) {
     finishGame();
-    return;
+  } else {
+    chooseNextPlayer();
+    ensurePlayableTurn();
   }
-
-  chooseNextPlayer();
-  ensurePlayableTurn();
   renderAll();
+  publishState("move");
 }
 
 function advanceTime(player, steps) {
@@ -250,6 +307,11 @@ function canCurrentPlayerAct() {
   return remainingPatches.some((patch) => player.buttons >= patch.cost && hasPlacement(player, patch.shape));
 }
 
+function canTakeTurn() {
+  if (!isOnlineGame()) return true;
+  return online.connected && online.role === current;
+}
+
 function hasPlacement(player, shape) {
   const variants = uniqueVariants(shape);
   return variants.some((variant) => {
@@ -264,7 +326,7 @@ function hasPlacement(player, shape) {
 
 function previewPlacement(boardId, x, y) {
   clearPreview();
-  if (gameOver || boardId !== current || selectedIndex === null) return;
+  if (gameOver || boardId !== current || selectedIndex === null || !canTakeTurn()) return;
   const player = players[current];
   const valid = canPlace(player, orientedShape, x, y);
   const cells = nodes[`${boardId}Board`].children;
@@ -292,13 +354,13 @@ function canPlace(player, shape, x, y) {
 }
 
 function rotateSelected() {
-  if (selectedIndex === null || gameOver) return;
+  if (selectedIndex === null || gameOver || !canTakeTurn()) return;
   orientedShape = normalize(orientedShape.map(([x, y]) => [y, -x]));
   renderSelected();
 }
 
 function flipSelected() {
-  if (selectedIndex === null || gameOver) return;
+  if (selectedIndex === null || gameOver || !canTakeTurn()) return;
   orientedShape = normalize(orientedShape.map(([x, y]) => [-x, y]));
   renderSelected();
 }
@@ -364,13 +426,11 @@ function finishGame() {
   const result = blueScore === redScore ? "平局" : blueScore > redScore ? "蓝方获胜" : "红方获胜";
   nodes.statusText.textContent = `${result}：蓝方 ${blueScore}，红方 ${redScore}。`;
   log(`终局计分：蓝方 ${blueScore}，红方 ${redScore}，${result}。`);
-  renderAll();
 }
 
 function log(message) {
-  const item = document.createElement("li");
-  item.textContent = message;
-  nodes.logList.prepend(item);
+  logMessages.unshift(message);
+  renderLog();
 }
 
 function shuffle(items) {
@@ -382,8 +442,207 @@ function shuffle(items) {
   return copy;
 }
 
+function initOnline() {
+  const config = window.PATCHWORK_ONLINE_CONFIG || {};
+  online.configured = Boolean(
+    window.supabase &&
+      config.supabaseUrl &&
+      config.supabaseKey &&
+      !config.supabaseUrl.includes("YOUR_") &&
+      !config.supabaseKey.includes("YOUR_"),
+  );
+
+  nodes.roomCodeInput.addEventListener("input", () => {
+    nodes.roomCodeInput.value = sanitizeRoomCode(nodes.roomCodeInput.value);
+  });
+  nodes.createRoomBtn.addEventListener("click", createRoom);
+  nodes.joinRoomBtn.addEventListener("click", () => joinRoom(nodes.roomCodeInput.value));
+  nodes.copyInviteBtn.addEventListener("click", copyInviteLink);
+
+  const params = new URLSearchParams(window.location.search);
+  const room = sanitizeRoomCode(params.get("room") || "");
+  const seat = params.get("seat") === "blue" ? "blue" : "red";
+  if (room && online.configured) {
+    nodes.roomCodeInput.value = room;
+    joinRoom(room, seat);
+  }
+}
+
+function createRoom() {
+  const roomCode = makeRoomCode();
+  nodes.roomCodeInput.value = roomCode;
+  connectRoom(roomCode, "blue");
+  startGame({ publish: false });
+  writeRoomUrl(roomCode, "blue");
+}
+
+function joinRoom(rawCode, role = "red") {
+  const roomCode = sanitizeRoomCode(rawCode);
+  if (!roomCode) {
+    nodes.onlineStatus.textContent = "请输入房间码。";
+    return;
+  }
+  connectRoom(roomCode, role);
+  writeRoomUrl(roomCode, role);
+}
+
+function connectRoom(roomCode, role) {
+  if (!online.configured) {
+    renderOnlineStatus();
+    return;
+  }
+
+  if (!online.client) {
+    const config = window.PATCHWORK_ONLINE_CONFIG;
+    online.client = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+  }
+
+  if (online.channel) {
+    online.client.removeChannel(online.channel);
+  }
+
+  online.roomCode = roomCode;
+  online.role = role;
+  online.connected = false;
+  online.channel = online.client.channel(`patchwork-duel:${roomCode}`, {
+    config: { broadcast: { ack: true, self: false } },
+  });
+
+  online.channel
+    .on("broadcast", { event: "state" }, ({ payload }) => receiveState(payload))
+    .on("broadcast", { event: "request-state" }, ({ payload }) => {
+      if (payload?.clientId !== online.clientId && online.role === "blue") publishState("sync");
+    })
+    .subscribe((status) => {
+      online.connected = status === "SUBSCRIBED";
+      renderOnlineStatus();
+      renderPatches();
+      renderSelected();
+      if (status === "SUBSCRIBED") {
+        if (online.role === "blue") publishState("host-ready");
+        if (online.role === "red") requestState();
+      }
+    });
+
+  renderOnlineStatus();
+}
+
+function requestState() {
+  if (!online.channel || !online.connected) return;
+  online.channel.send({
+    type: "broadcast",
+    event: "request-state",
+    payload: { clientId: online.clientId },
+  });
+}
+
+function publishState(reason) {
+  if (!isOnlineGame() || !online.connected || online.applyingRemote) return;
+  online.version += 1;
+  online.channel.send({
+    type: "broadcast",
+    event: "state",
+    payload: {
+      clientId: online.clientId,
+      version: online.version,
+      reason,
+      state: makeSnapshot(),
+    },
+  });
+}
+
+function receiveState(payload) {
+  if (!payload || payload.clientId === online.clientId || payload.version < online.version) return;
+  online.version = payload.version;
+  online.applyingRemote = true;
+  applySnapshot(payload.state);
+  online.applyingRemote = false;
+}
+
+function makeSnapshot() {
+  return {
+    current,
+    players: clone(players),
+    remainingPatches: clone(remainingPatches),
+    gameOver,
+    logMessages: clone(logMessages),
+  };
+}
+
+function applySnapshot(snapshot) {
+  if (!snapshot) return;
+  players.blue = snapshot.players.blue;
+  players.red = snapshot.players.red;
+  current = snapshot.current;
+  remainingPatches = snapshot.remainingPatches;
+  gameOver = snapshot.gameOver;
+  logMessages = snapshot.logMessages || [];
+  selectedIndex = null;
+  orientedShape = [];
+  document.body.classList.toggle("game-over", gameOver);
+  nodes.statusText.textContent = gameOver
+    ? "对局结束。"
+    : `${players[current].label} 行动：选择布料并放到自己的拼布板。`;
+  renderAll();
+}
+
+function isOnlineGame() {
+  return online.role !== "local" && Boolean(online.roomCode);
+}
+
+function makeInviteLink() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("room", online.roomCode);
+  url.searchParams.set("seat", "red");
+  return url.toString();
+}
+
+async function copyInviteLink() {
+  const link = makeInviteLink();
+  nodes.inviteLink.textContent = link;
+  try {
+    await navigator.clipboard.writeText(link);
+    nodes.onlineStatus.textContent = `房间 ${online.roomCode} · 邀请链接已复制`;
+  } catch {
+    nodes.onlineStatus.textContent = `房间 ${online.roomCode} · 请手动复制下方链接`;
+  }
+}
+
+function writeRoomUrl(roomCode, role) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("room", roomCode);
+  url.searchParams.set("seat", role);
+  window.history.replaceState(null, "", url);
+}
+
+function sanitizeRoomCode(value) {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+}
+
+function makeRoomCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function makeClientId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 nodes.rotateBtn.addEventListener("click", rotateSelected);
 nodes.flipBtn.addEventListener("click", flipSelected);
-nodes.newGameBtn.addEventListener("click", startGame);
+nodes.newGameBtn.addEventListener("click", () => {
+  if (isOnlineGame() && online.role !== "blue") {
+    log("只有蓝方可以开启新局。");
+    return;
+  }
+  startGame({ publish: isOnlineGame() });
+});
 
-startGame();
+buildBoards();
+startGame({ publish: false });
+initOnline();
+renderAll();
