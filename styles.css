@@ -39,6 +39,11 @@ button:hover {
   border-color: #9fb0c8;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .game-shell {
   width: min(1500px, calc(100vw - 32px));
   margin: 0 auto;
@@ -46,6 +51,7 @@ button:hover {
 }
 
 .topbar,
+.online-panel,
 .log-panel,
 .player-panel,
 .center-panel > div {
@@ -117,6 +123,56 @@ h2 {
 
 .score-pill.red strong {
   color: var(--red);
+}
+
+.online-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 14px;
+}
+
+.online-status p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.room-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.room-controls button,
+.room-controls input {
+  height: 36px;
+}
+
+.room-controls button {
+  padding: 0 12px;
+}
+
+.room-controls input {
+  width: 118px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--ink);
+  font: inherit;
+  text-transform: uppercase;
+}
+
+.invite-link {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .arena {
@@ -388,6 +444,19 @@ h2 {
   .topbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .online-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .room-controls {
+    justify-content: stretch;
+  }
+
+  .room-controls button,
+  .room-controls input {
+    flex: 1 1 128px;
   }
 
   .score-strip {
