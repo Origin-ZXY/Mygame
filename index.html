@@ -25,6 +25,20 @@
         </div>
       </header>
 
+      <section class="online-panel">
+        <div class="online-status">
+          <h2>联机房间</h2>
+          <p id="onlineStatus">本地同屏模式</p>
+        </div>
+        <div class="room-controls">
+          <button id="createRoomBtn" type="button">创建房间</button>
+          <input id="roomCodeInput" type="text" maxlength="8" placeholder="房间码" aria-label="房间码" />
+          <button id="joinRoomBtn" type="button">加入房间</button>
+          <button id="copyInviteBtn" type="button" disabled>复制邀请</button>
+        </div>
+        <p class="invite-link" id="inviteLink"></p>
+      </section>
+
       <section class="arena">
         <aside class="player-panel active" id="bluePanel">
           <div class="player-head">
@@ -86,6 +100,8 @@
       </section>
     </main>
 
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="game.js"></script>
   </body>
 </html>
