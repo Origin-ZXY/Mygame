@@ -218,7 +218,7 @@ h2 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin: 12px 0;
 }
@@ -303,6 +303,16 @@ h2 {
   border-color: #ecc56d;
 }
 
+.track-cell.leather {
+  background: #edf8f1;
+  border-color: #88c8a1;
+}
+
+.track-cell.finish {
+  background: #f0eefb;
+  border-color: #aca3df;
+}
+
 .marker {
   position: absolute;
   top: 4px;
@@ -342,9 +352,15 @@ h2 {
 }
 
 .patch-card {
-  min-height: 126px;
+  position: relative;
+  min-height: 138px;
   padding: 10px;
   text-align: left;
+}
+
+.patch-card.available {
+  border-color: #6f8fb4;
+  background: #f8fbff;
 }
 
 .patch-card.selected {
@@ -352,9 +368,21 @@ h2 {
   background: #f4f7fb;
 }
 
+.patch-card.neutral::before {
+  content: "中立";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: #252b35;
+  color: #fff;
+  font-size: 11px;
+}
+
 .patch-card:disabled {
   cursor: not-allowed;
-  opacity: 0.42;
+  opacity: 0.58;
 }
 
 .mini-grid,
