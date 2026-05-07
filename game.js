@@ -198,11 +198,21 @@ function renderPatches() {
     card.append(makeMiniGrid(patch.shape, patch.color));
     card.insertAdjacentHTML(
       "beforeend",
-      `<span class="patch-name">${patch.name}</span><span class="patch-meta">#${index + 1} · 花费 ${patch.cost} · 时间 ${patch.time} · 收入 +${patch.income}</span>`,
+      `<span class="patch-name">${patch.name}</span><span class="patch-index">#${index + 1}</span>${makePatchStatsHtml(patch)}`,
     );
     card.addEventListener("click", () => selectMarketPatch(index));
     nodes.patchList.append(card);
   });
+}
+
+function makePatchStatsHtml(patch) {
+  return `
+    <span class="patch-stats" aria-label="布料属性">
+      <span class="patch-stat cost"><span>花费</span><strong>${patch.cost}</strong></span>
+      <span class="patch-stat time"><span>时间</span><strong>${patch.time}</strong></span>
+      <span class="patch-stat income"><span>收入</span><strong>+${patch.income}</strong></span>
+    </span>
+  `;
 }
 
 function renderSelected() {

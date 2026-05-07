@@ -353,7 +353,7 @@ h2 {
 
 .patch-card {
   position: relative;
-  min-height: 138px;
+  min-height: 164px;
   padding: 10px;
   text-align: left;
 }
@@ -385,6 +385,60 @@ h2 {
   opacity: 0.58;
 }
 
+.patch-index {
+  display: inline-block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.patch-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.patch-stat {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  line-height: 1.1;
+}
+
+.patch-stat span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.patch-stat strong {
+  margin-top: 3px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.patch-stat.cost {
+  border-color: #d7a138;
+  background: #fff8e5;
+  color: #7c5300;
+}
+
+.patch-stat.time {
+  border-color: #6f9fd7;
+  background: #edf5ff;
+  color: #1d5594;
+}
+
+.patch-stat.income {
+  border-color: #72b78c;
+  background: #edf8f1;
+  color: #23683e;
+}
+
 .mini-grid,
 .selected-preview {
   display: grid;
@@ -410,7 +464,6 @@ h2 {
   font-weight: 700;
 }
 
-.patch-meta,
 #selectedMeta {
   color: var(--muted);
   font-size: 12px;
