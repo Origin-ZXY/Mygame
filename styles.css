@@ -352,8 +352,11 @@ h2 {
 }
 
 .patch-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   position: relative;
-  min-height: 164px;
+  min-height: 142px;
   padding: 10px;
   text-align: left;
 }
@@ -385,29 +388,22 @@ h2 {
   opacity: 0.58;
 }
 
-.patch-index {
-  display: inline-block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .patch-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
-  margin-top: 8px;
+  margin-top: auto;
 }
 
 .patch-stat {
   display: grid;
+  grid-template-rows: 14px 22px;
   place-items: center;
-  min-height: 42px;
+  height: 46px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #fff;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .patch-stat span {
@@ -447,6 +443,12 @@ h2 {
   margin-bottom: 8px;
 }
 
+.patch-card .mini-grid {
+  align-content: start;
+  min-height: 76px;
+  margin-bottom: 10px;
+}
+
 .mini-cell {
   width: 16px;
   height: 16px;
@@ -459,9 +461,11 @@ h2 {
 }
 
 .patch-name {
-  display: block;
-  margin-top: 4px;
-  font-weight: 700;
+  display: none;
+}
+
+.patch-index {
+  display: none;
 }
 
 #selectedMeta {
